@@ -14,6 +14,7 @@ import Campaign from './pages/Campaigns/Campaigns'
 import Insights from './pages/Campaigns/Inshights'
 import Reports from './pages/Reports'
 import Plans from './pages/Plan/Plan'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 
 
 const App = () => {
@@ -39,6 +40,8 @@ const App = () => {
       {/* Public routes */}
       <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
       <Route path="/register" element={<Register setIsAuthenticated={setIsAuthenticated} />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage setIsAuthenticated={setIsAuthenticated}/>} />
+
 
       {/* Protected routes with AppLayout */}
       {isAuthenticated ? (
@@ -54,6 +57,7 @@ const App = () => {
           <Route path="/members" element={<Members handleLogout={handleLogout} />} />
           <Route path="/billing" element={<Billing handleLogout={handleLogout} />} />
           <Route path="/profile" element={<Profile handleLogout={handleLogout} />} />
+
         </Route>
       ) : (
         <Route path="*" element={<Navigate to="/login" replace />} />
