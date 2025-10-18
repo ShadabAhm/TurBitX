@@ -2,7 +2,8 @@
 import axios from 'axios';
 import { authService } from './authService';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+// Use relative URL for Vite proxy or environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Create axios instance with auth interceptor
 const api = axios.create({
@@ -146,6 +147,31 @@ class CampaignService {
       return response.data;
     } catch (error) {
       console.error('Get campaign results error:', error);
+      throw error;
+    }
+  }
+
+  // Download campaign report PDF
+  async downloadCampaignReport(campaignId) {
+    try {
+      const response = await api.get(`/v1/campaign/${campaignId}/report`, {
+        responseType: 'blob', // Important for binary data
+      });
+
+      // Create a blob URL and trigger download
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `campaign_${campaignId}_report.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      return response.data;
+    } catch (error) {
+      console.error('Download campaign report error:', error);
       throw error;
     }
   }

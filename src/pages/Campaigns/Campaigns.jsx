@@ -359,7 +359,7 @@ const Campaign = () => {
 
                                         {/* View Insights Link */}
                                         <button
-                                            onClick={() => navigate(`/insights/${campaign.id}`)}
+                                            onClick={() => navigate(`/insight/${campaign.id}`)}
                                             className="mt-4 text-blue-600 text-sm font-medium flex items-center gap-1 hover:text-blue-700 cursor-pointer"
                                         >
                                             View Insights

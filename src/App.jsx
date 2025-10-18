@@ -11,7 +11,7 @@ import Billing from './pages/Billing'
 import Profile from './pages/Profile'
 import AppLayout from './Layout/AppLayout'
 import Campaign from './pages/Campaigns/Campaigns'
-import Insights from './pages/Campaigns/Inshights'
+import Insights from './pages/Campaigns/Insights'
 import Reports from './pages/Reports'
 import Plans from './pages/Plan/Plan'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
@@ -29,8 +29,12 @@ const App = () => {
   }, [])
 
   const handleLogout = () => {
+    localStorage.removeItem('trubitx_auth')
+    localStorage.removeItem('trubitx_user')
+    localStorage.removeItem('trubitx_access_token')
     sessionStorage.removeItem('trubitx_auth')
     sessionStorage.removeItem('trubitx_user')
+    sessionStorage.removeItem('trubitx_access_token')
     setIsAuthenticated(false)
     navigate('/login')
   }
@@ -49,7 +53,7 @@ const App = () => {
           <Route path="/dashboard" element={<Dashboard handleLogout={handleLogout} />} />
           <Route path="/plans" element={<Plans handleLogout={handleLogout} />} />
           <Route path="/campaign" element={<Campaign handleLogout={handleLogout} />} />
-          <Route path="/inshight" element={<Insights handleLogout={handleLogout} />} />
+          <Route path="/insight/:campaignId" element={<Insights handleLogout={handleLogout} />} />
           <Route path="/reports" element={<Reports handleLogout={handleLogout} />} />
           <Route path="/notification" element={<Notifications handleLogout={handleLogout} />} />
           <Route path="/settings" element={<Settings handleLogout={handleLogout} />} />
