@@ -85,27 +85,18 @@ class CampaignService {
     }
   }
 
-  // Pause campaign
-  async pauseCampaign(campaignId) {
-    try {
-      const response = await api.post(`/v1/campaign/${campaignId}/pause`);
-      return response.data;
-    } catch (error) {
-      console.error('Pause campaign error:', error);
-      throw error;
-    }
+  // Add this new method
+async toggleRecurring(campaignId, intervalHours = 24) {
+  try {
+    const response = await api.post(
+      `/v1/campaign/${campaignId}/toggle-recurring?interval_hours=${intervalHours}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Toggle recurring error:', error);
+    throw error;
   }
-
-  // Resume campaign
-  async resumeCampaign(campaignId) {
-    try {
-      const response = await api.post(`/v1/campaign/${campaignId}/resume`);
-      return response.data;
-    } catch (error) {
-      console.error('Resume campaign error:', error);
-      throw error;
-    }
-  }
+}
 
   // Cancel campaign
   async cancelCampaign(campaignId) {

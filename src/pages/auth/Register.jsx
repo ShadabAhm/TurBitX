@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../../services/authService";
+import logo from "../../assets/brand-logo2.png";
+
 
 const Register = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
@@ -76,8 +78,9 @@ const Register = ({ setIsAuthenticated }) => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
-      <form onSubmit={handleRegister} className="bg-white shadow-md rounded-xl p-8 w-full max-w-md">
-        <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">
+      <form onSubmit={handleRegister} className="bg-white shadow-md rounded-xl p-4 w-full max-w-md">
+          <img src={logo} alt="TruBitX Logo" className="w-70 h-30 object-contain mx-auto" />        
+        <h2 className="text-2xl font-semibold text-center mb-6 text-gray-600">
           Create an Account
         </h2>
 
@@ -93,7 +96,7 @@ const Register = ({ setIsAuthenticated }) => {
             name="fullName"
             value={formData.fullName}
             onChange={handleChange}
-            className="w-full p-2 border rounded mt-1"
+            className="w-full pl-4 pr-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
           {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
         </div>
@@ -105,7 +108,7 @@ const Register = ({ setIsAuthenticated }) => {
             name="username"
             value={formData.username}
             onChange={handleChange}
-            className="w-full p-2 border rounded mt-1"
+            className="w-full pl-4 pr-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
           {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
           {backendErrors.username && <p className="text-red-500 text-sm mt-1">{backendErrors.username}</p>}
@@ -118,7 +121,7 @@ const Register = ({ setIsAuthenticated }) => {
             name="email"
             value={formData.email}
             onChange={handleChange}
-            className="w-full p-2 border rounded mt-1"
+            className="w-full pl-4 pr-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
           {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
           {backendErrors.email && <p className="text-red-500 text-sm mt-1">{backendErrors.email}</p>}
@@ -131,7 +134,7 @@ const Register = ({ setIsAuthenticated }) => {
             name="password"
             value={formData.password}
             onChange={handleChange}
-            className="w-full p-2 border rounded mt-1"
+            className="w-full pl-4 pr-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
           {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
         </div>
@@ -143,12 +146,12 @@ const Register = ({ setIsAuthenticated }) => {
             name="company"
             value={formData.company}
             onChange={handleChange}
-            className="w-full p-2 border rounded mt-1"
+            className="w-full pl-4 pr-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
           />
           {errors.company && <p className="text-red-500 text-sm mt-1">{errors.company}</p>}
         </div>
 
-        <div className="flex items-center mb-4">
+        <div className="flex items-center mb-4 cursor-pointer">
           <input
             type="checkbox"
             name="agreeToTerms"
@@ -163,7 +166,7 @@ const Register = ({ setIsAuthenticated }) => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:opacity-50"
+          className="w-full bg-primary text-white py-2 rounded cursor-pointer transition disabled:opacity-50"
         >
           {loading ? "Creating Account..." : "Register"}
         </button>
@@ -172,7 +175,7 @@ const Register = ({ setIsAuthenticated }) => {
           Already have an account?{" "}
           <span
             onClick={() => navigate("/login")}
-            className="text-blue-600 cursor-pointer hover:underline"
+            className="text-primary cursor-pointer hover:underline"
           >
             Login
           </span>

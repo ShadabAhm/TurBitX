@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import ThemeSwitcher from "../theme/ThemeSwitcher";
 
 const AppLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -15,8 +16,8 @@ const AppLayout = () => {
   };
 
   return (
-    <div className="app-layout flex h-screen bg-gray-50">
-      {/* Sidebar with dynamic width */}
+    <div className="app-layout flex h-screen bg-gray-50 overflow-hidden">
+      {/* Sidebar */}
       <Sidebar
         isSidebarOpen={isSidebarOpen}
         toggleSidebar={toggleSidebar}
@@ -25,11 +26,12 @@ const AppLayout = () => {
         handleLogout={handleLogout}
       />
 
-      {/* Main content auto adjusts */}
-      <div className="flex-1 flex flex-col transition-all duration-300">
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col overflow-y-auto">
+        <main className="flex-1 p-4 md:p-6 overflow-y-auto">
           <Outlet />
         </main>
+        {/* <ThemeSwitcher /> */}
       </div>
     </div>
   );

@@ -37,10 +37,12 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
   }, [editCampaign]);
 
   const handleChange = (field, value) => {
+    setError(null);
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleCompetitorChange = (index, value) => {
+    setError(null);
     const newCompetitors = [...formData.competitors];
     newCompetitors[index] = value;
     setFormData((prev) => ({ ...prev, competitors: newCompetitors }));
@@ -72,6 +74,7 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
   };
 
   const handleDurationSelect = (duration) => {
+    setError(null);
     if (duration === "Custom") {
       setFormData(prev => ({
         ...prev,
@@ -99,51 +102,62 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
   };
 
   const nextStep = () => {
+    setError(null);
     if (step < 5 && isStepValid()) {
       setStep(step + 1);
     }
   };
 
   const prevStep = () => {
+    setError(null);
     if (step > 1) setStep(step - 1);
   };
 
-  const submitCampaign = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+const submitCampaign = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    console.log('Starting campaign submission...');
 
-      // Prepare data for API
-      const apiData = {
-        name: formData.name,
-        brand_keyword: formData.brand_keyword,
-        competitors: formData.competitors.filter(c => c.trim() !== ""),
-        regions: formData.regions,
-        duration_days: formData.duration_days,
-        form_data: {
-          // Include any additional form data if needed
-        }
-      };
+    // Prepare data for API
+    const apiData = {
+      name: formData.name,
+      brand_keyword: formData.brand_keyword,
+      competitors: formData.competitors.filter(c => c.trim() !== ""),
+      regions: formData.regions,
+      duration_days: formData.duration_days,
+    };
 
-      let result;
-      if (editCampaign) {
-        // Update existing campaign
-        // Note: You'll need to implement update endpoint in your API
-        // result = await campaignService.updateCampaign(editCampaign.id, apiData);
-        console.log('Update campaign:', editCampaign.id, apiData);
-      } else {
-        // Create new campaign
-        result = await campaignService.createCampaign(apiData);
-      }
+    console.log('Sending API data:', apiData);
 
-      setStep(6); // Move to success stage
-      onFinish(result);
-    } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Failed to create campaign');
-    } finally {
-      setLoading(false);
+    let result;
+    if (editCampaign) {
+      console.log('Editing campaign:', editCampaign.id);
+      // Update logic here
+    } else {
+      console.log('Creating new campaign');
+      result = await campaignService.createCampaign(apiData);
+      console.log('API response:', result);
     }
-  };
+
+    if (result) {
+      console.log('Campaign created successfully, moving to step 6');
+      setStep(6); // Move to success stage
+      if (onFinish) {
+        console.log('Calling onFinish callback');
+        onFinish(result);
+      }
+    } else {
+      console.error('No result from API');
+      throw new Error('No response received from server');
+    }
+  } catch (err) {
+    console.error('Campaign creation error:', err);
+    setError(err.response?.data?.detail || err.message || 'Failed to create campaign');
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Validation rules per step
   const isStepValid = () => {
@@ -170,7 +184,7 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 cursor-pointer"
         >
           ✕
         </button>
@@ -192,7 +206,7 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
             </div>
             <div className="w-full bg-gray-200 h-1 rounded-full">
               <div
-                className="bg-blue-600 h-1 rounded-full transition-all"
+                className="bg-primary h-1 rounded-full transition-all"
                 style={{ width: `${(step / 5) * 100}%` }}
               />
             </div>
@@ -202,7 +216,7 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
         {/* Step Content */}
         {step === 1 && (
           <div>
-            <h2 className="text-lg font-semibold mb-4">Campaign Details</h2>
+            <h2 className="text-lg font-semibold mb-4 text-primary">Campaign Details</h2>
 
             <div className="space-y-4">
               <div>
@@ -245,7 +259,7 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
                     placeholder={`Competitor ${idx + 1}`}
                     value={comp}
                     onChange={(e) => handleCompetitorChange(idx, e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                   {formData.competitors.length > 1 && (
                     <button
@@ -261,7 +275,7 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
               <button
                 type="button"
                 onClick={addCompetitor}
-                className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg border border-dashed border-blue-300"
+                className="px-4 py-2 text-primary cursor-pointe rounded-lg border border-dashed border-primary"
               >
                 + Add Another Competitor
               </button>
@@ -278,11 +292,10 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
                   key={region}
                   type="button"
                   onClick={() => toggleRegion(region)}
-                  className={`px-4 py-2 rounded-full border transition-colors ${
-                    formData.regions.includes(region)
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "border-gray-300 hover:bg-gray-50"
-                  }`}
+                  className={`px-4 py-2 rounded-full border transition-colors ${formData.regions.includes(region)
+                    ? "bg-primary text-white border-primary"
+                    : "border-gray-300 hover:bg-gray-50"
+                    }`}
                 >
                   {region}
                 </button>
@@ -300,11 +313,10 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
                   key={duration}
                   type="button"
                   onClick={() => handleDurationSelect(duration)}
-                  className={`px-4 py-2 rounded-full border transition-colors ${
-                    formData.duration === duration
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "border-gray-300 hover:bg-gray-50"
-                  }`}
+                  className={`px-4 py-2 rounded-full border transition-colors ${formData.duration === duration
+                    ? "bg-primary text-white border-primary"
+                    : "border-gray-300 hover:bg-gray-50"
+                    }`}
                 >
                   {duration}
                 </button>
@@ -324,7 +336,7 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
                   placeholder="Enter number of days"
                   value={formData.customDays}
                   onChange={(e) => handleCustomDaysChange(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
                 {formData.customDays && parseInt(formData.customDays) > 90 && (
                   <p className="text-red-500 text-sm mt-1">Maximum duration is 90 days</p>
@@ -350,7 +362,7 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
                     Duration
                   </label>
                   <p className="text-gray-900">
-                    {formData.duration === "Custom" 
+                    {formData.duration === "Custom"
                       ? `${formData.duration_days} Days (Custom)`
                       : formData.duration
                     }
@@ -401,7 +413,7 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
         {step === 6 && (
           <div className="text-center py-8">
             {/* Success Icon */}
-            <div className="w-16 h-16 bg-blue-600 rounded-full mx-auto mb-6 flex items-center justify-center">
+            <div className="w-16 h-16 bg-primary rounded-full mx-auto mb-6 flex items-center justify-center">
               <CheckCircle className="w-10 h-10 text-white" />
             </div>
 
@@ -433,12 +445,14 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
             </div>
 
             {/* CTA Button */}
-            <button
-              onClick={onClose}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            {/* <button
+              onClick={() => {
+                onFinish(result);
+              }}
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg transition-colors"
             >
               Go to Dashboard
-            </button>
+            </button> */}
           </div>
         )}
 
@@ -448,19 +462,19 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
             {step > 1 ? (
               <button
                 onClick={prevStep}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 cursor-pointe transition-colors"
               >
                 Back
               </button>
             ) : (
               <div></div> // Empty div to maintain space
             )}
-            
+
             {step < 5 ? (
               <button
                 onClick={nextStep}
                 disabled={!isStepValid()}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2 bg-primary text-white rounded-lg transition-colors cursor-pointe disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Next
               </button>
@@ -468,7 +482,7 @@ const CampaignWizard = ({ onClose, onFinish, editCampaign }) => {
               <button
                 onClick={submitCampaign}
                 disabled={loading || !isStepValid()}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2 bg-primary text-white rounded-lg cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? "Creating..." : "Create Campaign"}
               </button>

@@ -39,22 +39,102 @@ const Plans = () => {
     return [free, pro, enterprise].filter(Boolean);
   };
 
+  const parseDuration = (duration) => {
+  if (!duration) return 0;
+  const lower = duration.toLowerCase();
+  if (lower.includes("year")) return 365;
+  if (lower.includes("month")) return 30;
+  if (lower.includes("week")) return 7;
+  if (lower.includes("day")) {
+    const match = lower.match(/\d+/);
+    return match ? parseInt(match[0], 10) : 1;
+  }
+  return 0;
+};
+
+
   const visiblePlans = getVisiblePlans();
 
-  const handlePlanSelect = (plan) => {
-    const user = authService.getUser();
-    if (user) {
-      user.plan = plan.name;
-      authService.setUser(user, true);
+  const handlePlanSelect = async (plan) => {
+    try {
+      const token = authService.getToken();
+      if (!token) {
+        alert("Please login to continue.");
+        navigate("/login");
+        return;
+      }
+
+      const numericPrice = parseFloat(plan.price.replace(/[^0-9.]/g, ""));
+      if (isNaN(numericPrice)) {
+        throw new Error("Invalid plan price format");
+      }
+
+      const res = await fetch("/api/v1/payment/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ amount: numericPrice, plan_name: plan.name, days: plan.days || parseDuration(plan.duration) }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to create order: ${res.status} ${errorText}`);
+      }
+
+      const { order_id, key } = await res.json();
+
+      const options = {
+        key,
+        amount: numericPrice * 100, // Razorpay expects paise
+        currency: "INR",
+        name: "YourApp",
+        description: plan.name,
+        order_id,
+        handler: async function (response) {
+          const verifyRes = await fetch("/api/v1/payment/verify-payment", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(response),
+          });
+
+          const verifyData = await verifyRes.json();
+
+          if (verifyData.status === "success") {
+            alert("Payment verified successfully!");
+            const user = authService.getUser();
+            if (user) {
+              user.plan = plan.name;
+              authService.setUser(user, true);
+            }
+            navigate("/campaign?wizard=1");
+          } else {
+            alert("Payment verification failed");
+          }
+        },
+        theme: { color: "#0d6efd" },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      console.error("Payment failed:", err);
+      alert("Payment failed, please try again.");
     }
-    navigate('/campaign?wizard=1');
   };
+
+
+
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-12 px-4 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading plans...</p>
         </div>
       </div>
@@ -69,7 +149,7 @@ const Plans = () => {
             <p className="text-red-700">{error}</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="mt-4 px-4 py-2 bg-primary text-white rounded-lg transition-colors"
             >
               Retry
             </button>
@@ -83,7 +163,7 @@ const Plans = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-12 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Choose your plan</h1>
+          <h1 className="text-4xl font-bold text-primary mb-4">Choose your plan</h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Select the plan that best fits your PR monitoring needs. All plans include core features with varying limits.
           </p>
@@ -92,21 +172,19 @@ const Plans = () => {
           <div className="flex items-center justify-center gap-4 mb-6 mt-8">
             <button
               onClick={() => setBillingCycle('monthly')}
-              className={`px-6 py-2 rounded-full font-medium transition-all ${
-                billingCycle === 'monthly'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
-              }`}
+              className={`px-6 py-2 rounded-full font-medium transition-all ${billingCycle === 'monthly'
+                ? 'bg-primary text-white shadow-lg'
+                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                }`}
             >
               Monthly
             </button>
             <button
               onClick={() => setBillingCycle('annual')}
-              className={`px-6 py-2 rounded-full font-medium transition-all ${
-                billingCycle === 'annual'
-                  ? 'bg-blue-600 text-white shadow-lg'
-                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
-              }`}
+              className={`px-6 py-2 rounded-full font-medium transition-all ${billingCycle === 'annual'
+                ? 'bg-primary text-white shadow-lg'
+                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                }`}
             >
               Annual (Save 20%)
             </button>
@@ -118,23 +196,22 @@ const Plans = () => {
           {visiblePlans.map((plan, index) => (
             <div
               key={plan.id || index}
-              className={`bg-white rounded-2xl shadow-lg overflow-hidden transition-all hover:shadow-xl border-2 ${
-                plan.name.toLowerCase().includes('pro') 
-                  ? 'border-blue-500 ring-2 ring-blue-600 scale-105' 
-                  : 'border-gray-200'
-              }`}
+              className={`bg-white rounded-2xl shadow-lg overflow-hidden transition-all hover:shadow-xl border-2 ${plan.name.toLowerCase().includes('pro')
+                ? 'border-primary ring-2 ring-primary scale-105'
+                : 'border-gray-200'
+                }`}
             >
               {plan.name.toLowerCase().includes('pro') && (
-                <div className="bg-blue-600 text-white text-center py-2">
+                <div className="bg-primary text-white text-center py-2">
                   <span className="text-sm font-semibold">Most Popular</span>
                 </div>
               )}
-              
+
               <div className="p-8 pb-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
                   {plan.badge && (
-                    <span className="px-3 py-1 bg-blue-100 text-blue-600 text-xs font-semibold rounded-full">
+                    <span className="px-3 py-1 bg-blue-100 text-primary text-xs font-semibold rounded-full">
                       {plan.badge}
                     </span>
                   )}
@@ -143,7 +220,7 @@ const Plans = () => {
                 <p className="text-sm text-gray-600 mb-4">{plan.duration || 'Lifetime access'}</p>
 
                 <div className="mb-4">
-                  <span className="text-3xl font-bold text-gray-900">{plan.price}</span>
+                  <span className="text-3xl font-bold text-primary">{plan.price}</span>
                   {plan.original_price && (
                     <span className="text-lg text-gray-500 line-through ml-2">
                       {plan.original_price}
@@ -159,7 +236,7 @@ const Plans = () => {
                 <ul className="space-y-3 mb-8">
                   {plan.features && plan.features.map((feature, idx) => (
                     <li key={idx} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                       <span className="text-gray-700">{feature}</span>
                     </li>
                   ))}
@@ -167,13 +244,12 @@ const Plans = () => {
 
                 <button
                   onClick={() => handlePlanSelect(plan)}
-                  className={`w-full py-3 px-6 rounded-lg font-medium transition-all ${
-                    plan.name.toLowerCase().includes('pro')
-                      ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'
-                      : plan.name.toLowerCase() === 'free'
+                  className={`w-full py-3 px-6 rounded-lg font-medium transition-all ${plan.name.toLowerCase().includes('pro')
+                    ? 'bg-primary text-white shadow-lg'
+                    : plan.name.toLowerCase() === 'free'
                       ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                      : 'bg-white text-blue-600 border-2 border-blue-600 hover:bg-blue-50'
-                  }`}
+                      : 'bg-white text-primary border-2 border-primary hover:bg-blue-50'
+                    }`}
                 >
                   {plan.button_text || `Get ${plan.name}`}
                 </button>
@@ -186,9 +262,9 @@ const Plans = () => {
         <div className="text-center mt-12">
           <p className="text-gray-600">
             Need a custom solution?{' '}
-            <button 
+            <button
               onClick={() => navigate('/contact')}
-              className="text-blue-600 font-medium hover:underline"
+              className="text-primary font-medium hover:underline"
             >
               Contact our sales team
             </button>

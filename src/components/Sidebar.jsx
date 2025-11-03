@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { LayoutDashboard, BarChart3, Settings, FileText, LogOut, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/brand-logo.png';
+import logo from '../assets/brand-logo2.png';
 import { authService } from '../services/authService';
 
 const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) => {
@@ -53,7 +53,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
     return 'U';
   };
 
-  const getUserDisplayName = () => user.fullName || user.name || user.email || 'User';
+  const getUserDisplayName = () => user.fullName || user.name || user.email || user.username ||'User';
   const getUserEmail = () => user.email || 'user@example.com';
 
   // 🧠 Close dropup when clicking outside
@@ -73,12 +73,11 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
   }, []);
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-200">
       {/* Sidebar */}
       <div
-        className={`${
-          isSidebarOpen ? 'w-20' : 'w-64'
-        } bg-white border-r border-gray-200 flex flex-col transition-all duration-300 relative`}
+        className={`${isSidebarOpen ? 'w-20' : 'w-64'
+          } bg-gray-100 border-r border-gray-200 flex flex-col transition-all duration-300 relative`}
       >
         {/* Logo */}
         <div
@@ -96,7 +95,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
 
           {isSidebarOpen && (
             <div
-              className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mx-auto transition-all cursor-pointer"
+              className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto transition-all cursor-pointer"
               onClick={() => navigate('/dashboard')}
             >
               <span className="text-white font-bold text-sm">T</span>
@@ -106,13 +105,12 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
           {/* Toggle Button */}
           <button
             onClick={() => toggleSidebar(!isSidebarOpen)}
-            className={`${isSidebarOpen ? 'absolute inset-0 flex items-center justify-center' : 'absolute right-2'} p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-all cursor-pointer ${
-              isSidebarOpen
-                ? isHoveringLogo
-                  ? 'opacity-100 visible'
-                  : 'opacity-0 invisible'
-                : 'opacity-100 visible'
-            }`}
+            className={`${isSidebarOpen ? 'absolute inset-0 flex items-center justify-center' : 'absolute right-2'} p-1.5 text-primary hover:bg-gray-100 rounded-lg transition-all cursor-pointer ${isSidebarOpen
+              ? isHoveringLogo
+                ? 'opacity-100 visible'
+                : 'opacity-0 invisible'
+              : 'opacity-100 visible'
+              }`}
             title={isSidebarOpen ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <svg
@@ -129,44 +127,84 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
         </div>
 
         {/* Menu Items */}
-        <div className="flex-1 py-6">
+        <div className="flex-1 py-6 flex flex-col justify-between">
+          <div>
+            {!isSidebarOpen && (
+              <div className="px-4 mb-4">
+                <span className="text-xs font-semibold text-gray-500 uppercase">Main</span>
+              </div>
+            )}
+            <nav className="space-y-1 px-2">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleMenuClick(item)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors cursor-pointer ${activeMenu === item.id
+                      ? 'bg-blue-50 text-primary border-r-2 border-primary'
+                      : 'text-gray-700 hover:bg-gray-100'
+                      } ${isSidebarOpen ? 'justify-center' : ''}`}
+                    title={isSidebarOpen ? item.label : ''}
+                  >
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {!isSidebarOpen && <span className="font-medium">{item.label}</span>}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+          {/* Plan Info Section */}
           {!isSidebarOpen && (
-            <div className="px-4 mb-4">
-              <span className="text-xs font-semibold text-gray-500 uppercase">Main</span>
+            <div className="mt-6 px-3">
+              <div className="relative overflow-hidden mt-2 bg-blue-50 border border-blue-100 rounded-xl p-4 shadow-sm">
+                {/* Decorative element */}
+                <div className="relative">
+                  {/* Plan Info */}
+                  <div className="flex items-center mb-3">
+                    
+                    <div>
+                      <p className="text-sm text-gray-500 font-medium">Your Current Plan</p>
+                      <p className="text-md font-bold text-gray-900">{user.plan || 'Free Plan'}</p>
+                    </div>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="flex gap-3 mb-4 pb-3 border-b border-blue-100">
+                    <div className="flex-1">
+                      <p className="text-md text-gray-500 mb-0.5">Days Left</p>
+                      <p className="text-md font-semibold text-gray-700">12</p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => navigate('/plans')}
+                      className="w-full px-3 py-2 bg-gradient-to-r from-primary to-primary text-white text-xs font-semibold rounded-lg hover:from-primary hover:to-primary transition-all duration-200 shadow-sm hover:shadow-md"
+                    >
+                      Upgrade Your Plan
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
-          <nav className="space-y-1 px-2">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleMenuClick(item)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors cursor-pointer ${
-                    activeMenu === item.id
-                      ? 'bg-blue-50 text-blue-600 border-r-2 border-blue-600'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  } ${isSidebarOpen ? 'justify-center' : ''}`}
-                  title={isSidebarOpen ? item.label : ''}
-                >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  {!isSidebarOpen && <span className="font-medium">{item.label}</span>}
-                </button>
-              );
-            })}
-          </nav>
         </div>
-
         {/* Profile Section */}
         <div className="border-t border-gray-200 p-3 relative">
           {/* Profile Dropup */}
           {showProfileDropup && (
             <div
               ref={dropupRef}
-              className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50 w-60"
+              className={`absolute bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50 w-60 ${
+                isSidebarOpen 
+                  ? 'bottom-full left-full ml-2 mb-0' 
+                  : 'bottom-full left-1/2 transform -translate-x-1/2 mb-2'
+              }`}
             >
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xl font-semibold">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xl font-semibold">
                   {getUserInitials()}
                 </div>
               </div>
@@ -175,7 +213,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
                 <h3 className="font-semibold text-gray-900 text-sm">{getUserDisplayName()}</h3>
                 <p className="text-xs text-gray-400 mt-1">{getUserEmail()}</p>
                 {user.plan && (
-                  <p className="text-xs text-blue-600 mt-2 bg-blue-50 px-2 py-1 rounded-full">
+                  <p className="text-xs text-primary mt-2 bg-blue-50 px-2 py-1 rounded-full">
                     {user.plan} Plan
                   </p>
                 )}
@@ -187,7 +225,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
                     setShowProfileDropup(false);
                     navigate('/profile');
                   }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-primary hover:text-white cursor-pointer transition-colors text-sm font-medium"
                 >
                   <User size={16} />
                   View Profile
@@ -208,12 +246,11 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
           <button
             ref={profileButtonRef}
             onClick={() => setShowProfileDropup(!showProfileDropup)}
-            className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors ${
-              isSidebarOpen ? 'justify-center' : ''
-            }`}
+            className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 transition-colors ${isSidebarOpen ? 'justify-center' : ''
+              }`}
             title={isSidebarOpen ? getUserDisplayName() : ''}
           >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-semibold flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-semibold flex-shrink-0">
               {getUserInitials()}
             </div>
             {!isSidebarOpen && (
@@ -221,7 +258,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
                 <div className="text-sm font-semibold text-gray-900 truncate">
                   {getUserDisplayName()}
                 </div>
-                <div className="text-xs text-gray-500 truncate">{user.plan || 'Free Plan'}</div>
+                <div className="text-xs text-gray-700 truncate">{user.plan || 'Free Plan'}</div>
               </div>
             )}
           </button>

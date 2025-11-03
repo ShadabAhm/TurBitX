@@ -67,6 +67,16 @@ export const useCampaigns = () => {
     }
   };
 
+   const toggleRecurring = async (campaignId, intervalHours = 24) => {
+    try {
+      await campaignService.toggleRecurring(campaignId, intervalHours);
+      await fetchCampaigns(); // Refresh the list
+    } catch (err) {
+      setError('Failed to toggle recurring');
+      throw err;
+    }
+  };
+
   const deleteCampaign = async (campaignId) => {
     try {
       setError(null);
@@ -78,25 +88,6 @@ export const useCampaigns = () => {
     }
   };
 
-  const pauseCampaign = async (campaignId) => {
-    try {
-      await campaignService.pauseCampaign(campaignId);
-      await fetchCampaigns(pagination.page);
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to pause campaign');
-      throw err;
-    }
-  };
-
-  const resumeCampaign = async (campaignId) => {
-    try {
-      await campaignService.resumeCampaign(campaignId);
-      await fetchCampaigns(pagination.page);
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to resume campaign');
-      throw err;
-    }
-  };
 
   const cancelCampaign = async (campaignId) => {
     try {
@@ -133,8 +124,7 @@ export const useCampaigns = () => {
     fetchCampaigns,
     createCampaign,
     deleteCampaign,
-    pauseCampaign,
-    resumeCampaign,
+    toggleRecurring,
     cancelCampaign
   };
 };

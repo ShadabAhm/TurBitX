@@ -45,7 +45,7 @@ const Reports = () => {
         <table className="w-full text-sm text-left">
           {/* Table Header */}
           <thead>
-            <tr className="bg-indigo-500 text-white text-sm">
+            <tr className="bg-primary text-white text-sm">
               <th className="px-6 py-3 font-medium">Date</th>
               <th className="px-6 py-3 font-medium">Campaign</th>
               <th className="px-6 py-3 font-medium">Type</th>

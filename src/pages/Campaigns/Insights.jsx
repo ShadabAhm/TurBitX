@@ -32,8 +32,27 @@ const Insights = ({ handleLogout }) => {
         setError(null);
       } catch (err) {
         console.error('Error fetching campaign data:', err);
-        const errorMsg = err.response?.data?.message || err.message || 'Failed to load campaign data';
-        setError(`${errorMsg}. Please ensure the backend server is running and the campaign exists.`);
+
+        // Handle different error cases specifically
+        if (err.response?.status === 400) {
+          const errorDetail = err.response.data?.detail || 'Campaign data not available';
+
+          if (errorDetail.includes('No data available')) {
+            setError('No data available yet. The campaign is either still processing or waiting for its first run to complete.');
+          } else if (errorDetail.includes('still processing')) {
+            setError('Campaign is still processing. Please check back in a few minutes.');
+          } else if (errorDetail.includes('Campaign not completed')) {
+            setError('Campaign processing is not yet complete. Results will be available soon.');
+          } else {
+            setError(errorDetail);
+          }
+        } else if (err.response?.status === 404) {
+          setError('Campaign not found. Please check the campaign ID.');
+        } else if (err.response?.status === 403) {
+          setError('You are not authorized to view this campaign.');
+        } else {
+          setError('Failed to load campaign data. Please ensure the backend server is running and try again.');
+        }
       } finally {
         setLoading(false);
       }
@@ -43,6 +62,24 @@ const Insights = ({ handleLogout }) => {
       fetchCampaignData();
     }
   }, [campaignId]);
+
+  // Add retry mechanism for processing campaigns
+  useEffect(() => {
+    let retryInterval;
+
+    if (error && error.includes('still processing') && campaignId) {
+      retryInterval = setInterval(() => {
+        console.log('Retrying to fetch campaign data...');
+        fetchCampaignData();
+      }, 30000); // Retry every 30 seconds
+    }
+
+    return () => {
+      if (retryInterval) {
+        clearInterval(retryInterval);
+      }
+    };
+  }, [error, campaignId]);
 
   const handleDownloadReport = async () => {
     try {
@@ -60,7 +97,7 @@ const Insights = ({ handleLogout }) => {
     return (
       <div className="flex h-screen bg-gray-50 justify-center items-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading campaign insights...</p>
         </div>
       </div>
@@ -68,16 +105,38 @@ const Insights = ({ handleLogout }) => {
   }
 
   if (error || !campaignData) {
+    const isProcessing = error?.includes('processing') || error?.includes('No data available');
+
     return (
       <div className="flex h-screen bg-gray-50 justify-center items-center">
-        <div className="text-center">
-          <p className="text-red-600">{error || 'Campaign not found'}</p>
+        <div className="text-center max-w-md">
+          {isProcessing ? (
+            <>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-gray-600 mb-2">Campaign is processing</p>
+              <p className="text-sm text-gray-500 mb-4">
+                {error}. We'll automatically check for updates every 30 seconds.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-red-600 mb-4">{error || 'Campaign not found'}</p>
+            </>
+          )}
           <button
             onClick={() => navigate('/campaign')}
-            className="mt-4 text-blue-600 hover:text-blue-700"
+            className="text-primary hover:underline"
           >
             Back to Campaigns
           </button>
+          {!isProcessing && (
+            <button
+              onClick={() => fetchCampaignData()}
+              className="ml-4 px-4 py-2 bg-primary text-white rounded-lg"
+            >
+              Try Again
+            </button>
+          )}
         </div>
       </div>
     );
@@ -93,7 +152,7 @@ const Insights = ({ handleLogout }) => {
   const shareOfVoiceData = campaignData.brand_kpis?.map(brand => ({
     name: brand.brand,
     value: brand.share_of_voice,
-    color: brand.brand === campaignInfo?.brand_keyword ? '#3b82f6' : '#ef4444'
+    color: brand.brand === campaignInfo?.brand_keyword ? '#8AC539' : '#ef4444'
   })) || [];
 
   // Sentiment calculation (simplified - you may want to fetch actual sentiment breakdown)
@@ -138,7 +197,7 @@ const Insights = ({ handleLogout }) => {
         <div className="bg-white border-b border-gray-200">
           <div className="flex items-center justify-between mb-4">
             <button
-              onClick={() => navigate('/campaigns')}
+              onClick={() => navigate('/campaign')}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -155,7 +214,7 @@ const Insights = ({ handleLogout }) => {
               <button
                 onClick={handleDownloadReport}
                 disabled={downloading}
-                className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 text-white bg-primary rounded-lg cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {downloading ? (
                   <>
@@ -171,7 +230,7 @@ const Insights = ({ handleLogout }) => {
               </button>
             </div>
           </div>
-          
+
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{campaignInfo?.name || 'Campaign Insights'}</h1>
             <p className="text-sm text-gray-600">
@@ -194,19 +253,57 @@ const Insights = ({ handleLogout }) => {
 
             {/* Share of Voice */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="text-sm text-gray-600 mb-2">Share of Voice</div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">
-                {shareOfVoiceData[0]?.value?.toFixed(1) || 0}%
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">{shareOfVoiceData[0]?.name || 'Brand'}</span>
-                {shareOfVoiceData[1] && (
-                  <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-600 rounded-full">
-                    {shareOfVoiceData[1]?.name} {shareOfVoiceData[1]?.value?.toFixed(1)}%
-                  </span>
-                )}
-              </div>
+              {(() => {
+                const brandSOV = shareOfVoiceData[0]?.value || 0;
+                const competitorSOV = shareOfVoiceData[1]?.value || 0;
+
+                let brandBg = 'bg-gray-100 text-gray-700';
+                let competitorBg = 'bg-gray-100 text-gray-700';
+
+                if (brandSOV > competitorSOV) {
+                  brandBg = 'bg-green-100 text-green-700';
+                  competitorBg = 'bg-red-100 text-red-700';
+                } else if (brandSOV < competitorSOV) {
+                  brandBg = 'bg-red-100 text-red-700';
+                  competitorBg = 'bg-green-100 text-green-700';
+                }
+
+                return (
+                  <>
+                    {/* Title with colored brand name */}
+                    <div className="text-sm text-gray-600 mb-2 flex items-center gap-2">
+                      <span>Share of Voice:</span>
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${brandBg}`}>
+                        {shareOfVoiceData[0]?.name || 'Brand'}
+                      </span>
+                    </div>
+
+                    {/* Brand score */}
+                    <div className="text-3xl font-bold text-gray-900 mb-2">
+                      {brandSOV.toFixed(1)}%
+                    </div>
+
+                    {/* Competitor scores */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {shareOfVoiceData.slice(1).map((comp, idx) => (
+                        <span
+                          key={idx}
+                          className={`px-2 py-1 text-xs font-medium rounded-full ${brandSOV > comp.value
+                            ? 'bg-red-100 text-red-700'
+                            : brandSOV < comp.value
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-gray-100 text-gray-700'
+                            }`}
+                        >
+                          {comp.name} {comp.value.toFixed(1)}%
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
+
 
             {/* Sentiment Score */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -241,7 +338,7 @@ const Insights = ({ handleLogout }) => {
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <div className="text-sm font-medium text-gray-900 mb-3">Avg Pickup Rate</div>
               <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{
+                <div className="bg-primary h-2 rounded-full" style={{
                   width: `${Math.min(100, (campaignData.brand_kpis?.reduce((sum, b) => sum + b.avg_pickup_rate, 0) / (campaignData.brand_kpis?.length || 1)) * 100)}%`
                 }}></div>
               </div>
@@ -254,7 +351,7 @@ const Insights = ({ handleLogout }) => {
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <div className="text-sm font-medium text-gray-900 mb-3">Avg Engagement Rate</div>
               <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{
+                <div className="bg-primary h-2 rounded-full" style={{
                   width: `${Math.min(100, (campaignData.brand_kpis?.reduce((sum, b) => sum + b.avg_engagement_rate, 0) / (campaignData.brand_kpis?.length || 1)) * 100)}%`
                 }}></div>
               </div>
@@ -267,7 +364,7 @@ const Insights = ({ handleLogout }) => {
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <div className="text-sm font-medium text-gray-900 mb-3">Tier-1 Publication %</div>
               <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${tier1Percentage}%` }}></div>
+                <div className="bg-primary h-2 rounded-full" style={{ width: `${tier1Percentage}%` }}></div>
               </div>
               <div className="text-2xl font-bold text-gray-900">{tier1Percentage.toFixed(1)}%</div>
             </div>
@@ -350,10 +447,10 @@ const Insights = ({ handleLogout }) => {
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip />
-                    <Line 
-                      type="monotone" 
-                      dataKey="mentions" 
-                      stroke="#3b82f6" 
+                    <Line
+                      type="monotone"
+                      dataKey="mentions"
+                      stroke="#3b82f6"
                       strokeWidth={3}
                       dot={{ fill: '#3b82f6', r: 4 }}
                     />

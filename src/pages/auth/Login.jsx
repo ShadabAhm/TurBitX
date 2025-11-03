@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../../assets/logo.png";
+import logo from "../../assets/brand-logo2.png";
 
 const LoginPage = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
@@ -99,7 +99,7 @@ const LoginPage = ({ setIsAuthenticated }) => {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointe"
             >
               {showPassword ? "Hide" : "Show"}
             </button>
@@ -112,12 +112,12 @@ const LoginPage = ({ setIsAuthenticated }) => {
               <input type="checkbox" name="rememberMe" checked={formData.rememberMe} onChange={handleChange} className="w-4 h-4 mr-2" />
               Remember me
             </label>
-            <button type="button" onClick={handleForgotPassword} className="text-blue-600 text-sm">
+            <button type="button" onClick={handleForgotPassword} className="text-primary cursor-pointe text-sm">
               Forgot password?
             </button>
           </div>
 
-          <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium">
+          <button type="submit" className="w-full bg-primary text-white py-3 rounded-lg cursor-pointer transition font-medium">
             Sign In
           </button>
         </form>
@@ -126,7 +126,7 @@ const LoginPage = ({ setIsAuthenticated }) => {
         <div className="px-8 py-6 text-center border-t border-gray-100 mt-6">
           <span className="text-gray-500 text-sm">
             Don't have an account?{" "}
-            <button onClick={() => navigate("/register")} className="text-blue-600 font-medium">
+            <button onClick={() => navigate("/register")} className="text-primary cursor-pointe font-medium">
               Create account
             </button>
           </span>

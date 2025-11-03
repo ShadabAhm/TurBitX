@@ -12,15 +12,14 @@ const Campaign = () => {
     const [actionLoading, setActionLoading] = useState(null); // Track loading state for specific actions
     const location = useLocation();
     const navigate = useNavigate();
-    
-    const { 
-        campaigns, 
-        loading, 
-        error, 
-        deleteCampaign, 
-        pauseCampaign, 
-        resumeCampaign,
-        fetchCampaigns 
+
+    const {
+        campaigns,
+        loading,
+        error,
+        deleteCampaign,
+        fetchCampaigns,
+        toggleRecurring //Added this from hook
     } = useCampaigns();
 
     useEffect(() => {
@@ -36,6 +35,25 @@ const Campaign = () => {
         setOpenDropdown(prevId => (prevId === id ? null : id));
     };
 
+    // Add polling for campaign status updates
+    useEffect(() => {
+        if (campaigns.length === 0) return;
+
+        const interval = setInterval(() => {
+            // Only refresh if there are campaigns that might be processing
+            const hasProcessingCampaigns = campaigns.some(campaign =>
+                campaign.status === 'in_progress' ||
+                campaign.status === 'ingesting'
+            );
+
+            if (hasProcessingCampaigns) {
+                fetchCampaigns();
+            }
+        }, 10000); // Check every 10 seconds
+
+        return () => clearInterval(interval);
+    }, [campaigns, fetchCampaigns]);
+
     const handleDeleteCampaign = async (id) => {
         if (window.confirm('Are you sure you want to delete this campaign?')) {
             try {
@@ -50,53 +68,50 @@ const Campaign = () => {
         }
     };
 
-    const handlePauseCampaign = async (campaign) => {
-        try {
-            setActionLoading(`pause-${campaign.id}`);
-            await pauseCampaign(campaign.id);
-            setOpenDropdown(null);
-        } catch (err) {
-            // Error handled in hook
-        } finally {
-            setActionLoading(null);
-        }
-    };
-
-    const handleResumeCampaign = async (campaign) => {
-        try {
-            setActionLoading(`resume-${campaign.id}`);
-            await resumeCampaign(campaign.id);
-            setOpenDropdown(null);
-        } catch (err) {
-            // Error handled in hook
-        } finally {
-            setActionLoading(null);
-        }
-    };
-
     const handleEditCampaign = (campaign) => {
         setSelectedCampaign(campaign);
         setOpenDropdown(null);
-        // Implement edit functionality
         console.log('Edit campaign:', campaign);
     };
 
-    const getFrontendStatus = (backendStatus) => {
-        if (backendStatus === 'completed') return 'Active';
-        if (backendStatus === 'in_progress') return 'In Progress';
+    const handleToggleRecurring = async (campaign) => {
+        try {
+            setActionLoading(`toggle-${campaign.id}`);
+            const intervalHours = campaign.interval_hours || 24;
+            await toggleRecurring(campaign.id, intervalHours);
+            setOpenDropdown(null);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const getFrontendStatus = (campaign) => {
+        // For recurring campaigns, show Active/Paused based on is_recurring
+        if (campaign.is_recurring !== undefined) {
+            return campaign.is_recurring ? 'Active' : 'Paused';
+        }
+
+        // For one-time campaigns, use the job status
+        const backendStatus = campaign.status;
+        if (backendStatus === 'completed') return 'Completed';
+        if (backendStatus === 'in_progress') return 'Ingesting';
         if (backendStatus === 'paused') return 'Paused';
         if (backendStatus === 'cancelled') return 'Cancelled';
         if (backendStatus === 'error') return 'Error';
         if (backendStatus === 'draft') return 'Draft';
-        return 'Processing';
+        return 'Ingesting';
     };
 
     const getStatusColor = (status) => {
         switch (status) {
             case 'Active':
                 return 'bg-green-50 text-green-700 border border-green-200';
-            case 'In Progress':
+            case 'Completed':
                 return 'bg-blue-50 text-blue-700 border border-blue-200';
+            case 'Ingesting':
+                return 'bg-orange-50 text-orange-700 border border-orange-200';
             case 'Paused':
                 return 'bg-gray-100 text-gray-700 border border-gray-300';
             case 'Error':
@@ -108,15 +123,6 @@ const Campaign = () => {
             default:
                 return 'bg-gray-100 text-gray-700 border border-gray-300';
         }
-    };
-
-    const canPauseCampaign = (campaign) => {
-        // Allow pausing for both in_progress AND completed (Active) campaigns
-        return campaign.status === 'in_progress' || campaign.status === 'completed';
-    };
-
-    const canResumeCampaign = (campaign) => {
-        return campaign.status === 'paused';
     };
 
     const formatDate = (dateString) => {
@@ -144,13 +150,18 @@ const Campaign = () => {
         );
     }
 
+    const handleWizardFinish = (result) => {
+        console.log('Wizard finished with result:', result);
+        fetchCampaigns();
+    };
+
     return (
         <div className="flex h-screen bg-gray-50">
             {/* Main Content */}
             <div className="flex-1">
                 {/* Header */}
-                <div className="bg-white border-b border-gray-200 flex items-center justify-between sticky top-0 z-10 p-4">
-                    <h1 className="text-2xl font-bold text-gray-900">Campaigns</h1>
+                <div className="bg-white border-b border-gray-200 flex items-center justify-between sticky top-0 z-10 pb-2">
+                    <h1 className="text-2xl font-bold text-primary">Campaigns</h1>
                     <button
                         onClick={() => {
                             const user = JSON.parse(localStorage.getItem("trubitx_user"));
@@ -160,7 +171,7 @@ const Campaign = () => {
                                 setShowWizard(true);
                             }
                         }}
-                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                        className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg cursor-pointer transition-colors"
                     >
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" />
@@ -176,15 +187,14 @@ const Campaign = () => {
                     </div>
                 )}
 
-                {/* Campaign Cards OR Empty State */}
+                {/* Campaign Cards */}
                 <div className="p-4">
                     {campaigns.length === 0 ? (
-                        // Empty State
                         <div className="flex justify-center items-center h-[70vh]">
                             <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-12 text-center max-w-md w-full">
                                 <div className="flex justify-center mb-6">
                                     <div className="bg-blue-50 p-4 rounded-full">
-                                        <Folder className="w-12 h-12 text-blue-600" />
+                                        <Folder className="w-12 h-12 text-primary" />
                                     </div>
                                 </div>
                                 <h2 className="text-lg font-semibold text-gray-900 mb-2">No campaigns yet</h2>
@@ -198,7 +208,7 @@ const Campaign = () => {
                                             setShowWizard(true);
                                         }
                                     }}
-                                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                    className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg cursor-pointer transition-colors"
                                 >
                                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                                         <path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" />
@@ -210,17 +220,15 @@ const Campaign = () => {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {campaigns.map((campaign) => {
-                                const frontendStatus = getFrontendStatus(campaign.status);
-                                const showPauseButton = canPauseCampaign(campaign);
-                                const showResumeButton = canResumeCampaign(campaign);
+                                const frontendStatus = getFrontendStatus(campaign);
                                 const isActionLoading = actionLoading !== null;
-                                
+
                                 return (
                                     <div
                                         key={campaign.id}
                                         className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-shadow relative"
                                     >
-                                        {/* Three dots menu */}
+                                        {/* Dropdown Menu */}
                                         <div className="absolute top-4 right-4">
                                             <button
                                                 onClick={() => toggleDropdown(campaign.id)}
@@ -232,7 +240,7 @@ const Campaign = () => {
 
                                             {openDropdown === campaign.id && (
                                                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20">
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleEditCampaign(campaign)}
                                                         disabled={isActionLoading}
                                                         className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
@@ -240,37 +248,26 @@ const Campaign = () => {
                                                         <Pencil className="w-4 h-4" />
                                                         Edit
                                                     </button>
-                                                    
-                                                    {showPauseButton && (
-                                                        <button 
-                                                            onClick={() => handlePauseCampaign(campaign)}
-                                                            disabled={actionLoading === `pause-${campaign.id}`}
-                                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
-                                                        >
-                                                            {actionLoading === `pause-${campaign.id}` ? (
-                                                                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                                                            ) : (
-                                                                <Pause className="w-4 h-4" />
-                                                            )}
-                                                            {actionLoading === `pause-${campaign.id}` ? 'Pausing...' : 'Pause'}
-                                                        </button>
-                                                    )}
-                                                    
-                                                    {showResumeButton && (
-                                                        <button 
-                                                            onClick={() => handleResumeCampaign(campaign)}
-                                                            disabled={actionLoading === `resume-${campaign.id}`}
-                                                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
-                                                        >
-                                                            {actionLoading === `resume-${campaign.id}` ? (
-                                                                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                                                            ) : (
-                                                                <Play className="w-4 h-4" />
-                                                            )}
-                                                            {actionLoading === `resume-${campaign.id}` ? 'Resuming...' : 'Resume'}
-                                                        </button>
-                                                    )}
-                                                    
+
+                                                    {/*Single Toggle Button */}
+                                                    <button
+                                                        onClick={() => handleToggleRecurring(campaign)}
+                                                        disabled={actionLoading === `toggle-${campaign.id}`}
+                                                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 disabled:opacity-50"
+                                                    >
+                                                        {actionLoading === `toggle-${campaign.id}` ? (
+                                                            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                                        ) : campaign.is_recurring ? (
+                                                            <Pause className="w-4 h-4" />
+                                                        ) : (
+                                                            <Play className="w-4 h-4" />
+                                                        )}
+
+                                                        {actionLoading === `toggle-${campaign.id}`
+                                                            ? (campaign.is_recurring ? 'Pausing...' : 'Starting...')
+                                                            : (campaign.is_recurring ? 'Pause' : 'Activate')}
+                                                    </button>
+
                                                     <button
                                                         onClick={() => handleDeleteCampaign(campaign.id)}
                                                         disabled={actionLoading === `delete-${campaign.id}`}
@@ -287,88 +284,52 @@ const Campaign = () => {
                                             )}
                                         </div>
 
-                                        {/* Campaign Title */}
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-3 pr-8">
-                                            {campaign.name}
-                                        </h3>
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-3 pr-8">{campaign.name}</h3>
 
-                                        {/* Keywords */}
-                                        <div className="mb-4">
+                                        <div className="mb-4 flex gap-2">
                                             <p className="text-sm text-gray-500 mb-1">Brand keywords:</p>
-                                            <p className="text-sm text-gray-700">{campaign.brand_keyword}</p>
+                                            <p className="text-sm text-gray-800 font-semibold">{campaign.brand_keyword}</p>
                                         </div>
-
-                                        {/* Brands */}
-                                        <div className="flex flex-wrap gap-2 mb-4">
-                                            {campaign.competitors && campaign.competitors.map((brand, idx) => (
-                                                <span
-                                                    key={idx}
-                                                    className="px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded-full border border-blue-200"
-                                                >
-                                                    {brand}
-                                                </span>
-                                            ))}
-                                        </div>
-
-                                        {/* Regions */}
-                                        <div className="flex flex-wrap gap-2 mb-4">
-                                            {campaign.regions && campaign.regions.map((region, idx) => (
-                                                <span
-                                                    key={idx}
-                                                    className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full font-medium"
-                                                >
-                                                    {region}
-                                                </span>
-                                            ))}
-                                        </div>
-
-                                        {/* Progress Bar for In Progress campaigns */}
-                                        {/* {(campaign.status === 'in_progress' || campaign.job_progress > 0) && (
-                                            <div className="mb-4">
-                                                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                                    <span>Processing</span>
-                                                    <span>{campaign.job_progress || 0}%</span>
-                                                </div>
-                                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                                    <div 
-                                                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                                        style={{ width: `${campaign.job_progress || 0}%` }}
-                                                    ></div>
-                                                </div>
-                                                {campaign.job_current_stage && (
-                                                    <p className="text-xs text-gray-500 mt-1">
-                                                        {campaign.job_current_stage}
-                                                    </p>
-                                                )}
+                                        <div className='flex flex-wrap gap-2 mb-4'>
+                                            <p className="text-sm text-gray-500 mb-1">Competitors:</p>
+                                            <div className="">
+                                                {campaign.competitors?.map((brand, idx) => (
+                                                    <span key={idx} className="px-3 py-1 bg-blue-50 text-blue-700 text-sm rounded-full border border-blue-200">
+                                                        {brand}
+                                                    </span>
+                                                ))}
                                             </div>
-                                        )} */}
 
-                                        {/* Footer */}
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            <p className="text-sm text-gray-500 mb-1">Regions:</p>
+                                            <p>
+                                                {campaign.regions?.map((region, idx) => (
+                                                    <span key={idx} className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full font-medium">
+                                                        {region}
+                                                    </span>
+                                                ))}
+                                            </p>
+                                        </div>
+
                                         <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-gray-500">
                                                     Last updated: {formatDate(campaign.updated_at)}
                                                 </span>
-                                                <span
-                                                    className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(frontendStatus)}`}
-                                                >
+                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(frontendStatus)}`}>
                                                     {frontendStatus}
                                                 </span>
                                             </div>
                                         </div>
 
-                                        {/* View Insights Link */}
                                         <button
                                             onClick={() => navigate(`/insight/${campaign.id}`)}
-                                            className="mt-4 text-blue-600 text-sm font-medium flex items-center gap-1 hover:text-blue-700 cursor-pointer"
+                                            className="mt-4 text-primary text-sm font-medium flex items-center gap-1 hover:text-md cursor-pointer"
                                         >
                                             View Insights
-                                            <svg
-                                                width="16"
-                                                height="16"
-                                                viewBox="0 0 16 16"
-                                                fill="currentColor"
-                                            >
+                                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                                                 <path d="M6.22 4.22a.75.75 0 011.06 0l3.25 3.25a.75.75 0 010 1.06l-3.25 3.25a.75.75 0 01-1.06-1.06L8.94 8 6.22 5.28a.75.75 0 010-1.06z" />
                                             </svg>
                                         </button>
@@ -379,15 +340,14 @@ const Campaign = () => {
                     )}
                 </div>
             </div>
+
             {showWizard && (
                 <CampaignWizard
                     onClose={() => {
                         setShowWizard(false);
                         setSelectedCampaign(null);
                     }}
-                    onFinish={() => {
-                        fetchCampaigns(); // Refresh the campaigns list
-                    }}
+                    onFinish={() => fetchCampaigns()}
                     editCampaign={selectedCampaign}
                 />
             )}
