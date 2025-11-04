@@ -40,17 +40,17 @@ const Plans = () => {
   };
 
   const parseDuration = (duration) => {
-  if (!duration) return 0;
-  const lower = duration.toLowerCase();
-  if (lower.includes("year")) return 365;
-  if (lower.includes("month")) return 30;
-  if (lower.includes("week")) return 7;
-  if (lower.includes("day")) {
-    const match = lower.match(/\d+/);
-    return match ? parseInt(match[0], 10) : 1;
-  }
-  return 0;
-};
+    if (!duration) return 0;
+    const lower = duration.toLowerCase();
+    if (lower.includes("year")) return 365;
+    if (lower.includes("month")) return 30;
+    if (lower.includes("week")) return 7;
+    if (lower.includes("day")) {
+      const match = lower.match(/\d+/);
+      return match ? parseInt(match[0], 10) : 1;
+    }
+    return 0;
+  };
 
 
   const visiblePlans = getVisiblePlans();
@@ -65,34 +65,68 @@ const Plans = () => {
       }
 
       const numericPrice = parseFloat(plan.price.replace(/[^0-9.]/g, ""));
-      if (isNaN(numericPrice)) {
-        throw new Error("Invalid plan price format");
+      if (isNaN(numericPrice)) throw new Error("Invalid plan price format");
+
+      // Handle free plan directly
+      if (numericPrice === 0) {
+        const res = await fetch("/api/v1/payment/create-order", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ amount: 0, plan_name: plan.name }),
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          alert(data.message || "Free plan activated!");
+          const user = authService.getUser();
+          if (user) {
+            user.plan = plan.name;
+            authService.setUser(user, true);
+          }
+          navigate("/campaign?wizard=1");
+        } else {
+          alert("Failed to activate free plan.");
+        }
+        return;
       }
 
+      //Paid plan: proceed with Razorpay
       const res = await fetch("/api/v1/payment/create-order", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ amount: numericPrice, plan_name: plan.name, days: plan.days || parseDuration(plan.duration) }),
+        body: JSON.stringify({ amount: numericPrice, plan_name: plan.name }),
       });
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Failed to create order: ${res.status} ${errorText}`);
+      if (!res.ok) throw new Error(`Failed to create order: ${res.status}`);
+      const { order_id, key, status, message } = await res.json();
+
+      //Handle free plan separately — no Razorpay checkout
+      if (status === "free") {
+        alert("Free plan activated successfully!");
+        const user = authService.getUser();
+        if (user) {
+          user.plan = plan.name;
+          authService.setUser(user, true);
+        }
+        navigate("/campaign?wizard=1");
+        return; // Stop here, don't open Razorpay checkout
       }
 
-      const { order_id, key } = await res.json();
 
       const options = {
         key,
-        amount: numericPrice * 100, // Razorpay expects paise
+        amount: numericPrice * 100,
         currency: "INR",
         name: "YourApp",
         description: plan.name,
         order_id,
-        handler: async function (response) {
+        handler: async (response) => {
           const verifyRes = await fetch("/api/v1/payment/verify-payment", {
             method: "POST",
             headers: {
@@ -103,7 +137,6 @@ const Plans = () => {
           });
 
           const verifyData = await verifyRes.json();
-
           if (verifyData.status === "success") {
             alert("Payment verified successfully!");
             const user = authService.getUser();

@@ -15,6 +15,7 @@ import Insights from './pages/Campaigns/Insights'
 import Reports from './pages/Reports'
 import Plans from './pages/Plan/Plan'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
+import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 
 
 const App = () => {
@@ -45,6 +46,7 @@ const App = () => {
       <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
       <Route path="/register" element={<Register setIsAuthenticated={setIsAuthenticated} />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage setIsAuthenticated={setIsAuthenticated}/>} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
 
       {/* Protected routes with AppLayout */}

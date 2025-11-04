@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { LayoutDashboard, BarChart3, Settings, FileText, LogOut, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/brand-logo2.png';
 import { authService } from '../services/authService';
 
@@ -8,16 +8,13 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isHoveringLogo, setIsHoveringLogo] = useState(false);
   const [showProfileDropup, setShowProfileDropup] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
   const dropupRef = useRef(null);
   const profileButtonRef = useRef(null);
   const navigate = useNavigate();
-
-  // Get user data
-  const user = authService.getUser() || {
-    name: 'Guest User',
-    email: 'guest@example.com',
-    fullName: 'Guest User',
-  };
+  const location = useLocation();
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
@@ -26,7 +23,35 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
     { id: 'settings', label: 'Settings', icon: Settings, path: '/plans' },
   ];
 
-  const toggleDropdown = (id) => setOpenDropdown(openDropdown === id ? null : id);
+  // Memoized user data functions
+  const getUserInitials = useCallback(() => {
+    if (!user) return 'U';
+    if (user.fullName) return user.fullName.charAt(0).toUpperCase();
+    if (user.name) return user.name.charAt(0).toUpperCase();
+    if (user.email) return user.email.charAt(0).toUpperCase();
+    return 'U';
+  }, [user]);
+
+  const getUserDisplayName = useCallback(() => {
+    if (!user) return 'User';
+    if (user.fullName?.trim()) return user.fullName;
+    if (user.name?.trim()) return user.name;
+    if (user.username?.trim()) return user.username;
+    if (user.email?.trim()) return user.email.split('@')[0];
+    return 'User';
+  }, [user]);
+
+  const getUserEmail = useCallback(() => {
+    return user?.email || 'user@example.com';
+  }, [user]);
+
+  const getUserPlan = useCallback(() => {
+    return user?.plan || 'Free Plan';
+  }, [user]);
+
+  const toggleDropdown = (id) => {
+    setOpenDropdown(openDropdown === id ? null : id);
+  };
 
   const handleLogout = async () => {
     try {
@@ -40,23 +65,13 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
     }
   };
 
-  const handleMenuClick = (item) => {
+  const handleMenuClick = useCallback((item) => {
     setActiveMenu(item.id);
     navigate(item.path);
     setOpenDropdown(null);
-  };
+  }, [navigate, setActiveMenu]);
 
-  const getUserInitials = () => {
-    if (user.fullName) return user.fullName.charAt(0).toUpperCase();
-    if (user.name) return user.name.charAt(0).toUpperCase();
-    if (user.email) return user.email.charAt(0).toUpperCase();
-    return 'U';
-  };
-
-  const getUserDisplayName = () => user.fullName || user.name || user.email || user.username ||'User';
-  const getUserEmail = () => user.email || 'user@example.com';
-
-  // 🧠 Close dropup when clicking outside
+  // Close dropup when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -71,6 +86,57 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Fetch user data
+  useEffect(() => {
+    const initializeUser = async () => {
+      setLoading(true);
+      try {
+        if (!authService.isAuthenticated()) {
+          navigate('/login');
+          return;
+        }
+
+        let userData = authService.getUser();
+        if (!userData) {
+          userData = await authService.fetchCurrentUser();
+        }
+        
+        setUser(userData || {
+          name: 'Guest User',
+          email: 'guest@example.com',
+          fullName: 'Guest User',
+        });
+      } catch (error) {
+        console.error('Error initializing user:', error);
+        navigate('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeUser();
+  }, [navigate]);
+
+  // Update active menu based on current route
+  useEffect(() => {
+    const currentMenuItem = menuItems.find(item => 
+      location.pathname.startsWith(item.path)
+    );
+    if (currentMenuItem) {
+      setActiveMenu(currentMenuItem.id);
+    }
+  }, [location.pathname, menuItems, setActiveMenu]);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-gray-200">
+        <div className={`${isSidebarOpen ? 'w-20' : 'w-64'} bg-gray-100 border-r border-gray-200 flex items-center justify-center`}>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-200">
@@ -162,7 +228,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
                 <div className="relative">
                   {/* Plan Info */}
                   <div className="flex items-center mb-3">
-                    
+
                     <div>
                       <p className="text-sm text-gray-500 font-medium">Your Current Plan</p>
                       <p className="text-md font-bold text-gray-900">{user.plan || 'Free Plan'}</p>
@@ -197,11 +263,10 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
           {showProfileDropup && (
             <div
               ref={dropupRef}
-              className={`absolute bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50 w-60 ${
-                isSidebarOpen 
-                  ? 'bottom-full left-full ml-2 mb-0' 
-                  : 'bottom-full left-1/2 transform -translate-x-1/2 mb-2'
-              }`}
+              className={`absolute bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50 w-60 ${isSidebarOpen
+                ? 'bottom-full left-full ml-2 mb-0'
+                : 'bottom-full left-1/2 transform -translate-x-1/2 mb-2'
+                }`}
             >
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-xl font-semibold">

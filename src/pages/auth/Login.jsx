@@ -1,23 +1,45 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { authService } from "../../services/authService";
 import logo from "../../assets/brand-logo2.png";
 
 const LoginPage = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ email: "", password: "", rememberMe: false });
+  const [formData, setFormData] = useState({ 
+    email: "", 
+    password: "", 
+    rememberMe: false 
+  });
   const [errors, setErrors] = useState({});
   const [backendError, setBackendError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({ ...formData, [name]: type === "checkbox" ? checked : value });
+    setFormData({ 
+      ...formData, 
+      [name]: type === "checkbox" ? checked : value 
+    });
+    // Clear errors when user starts typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: "" });
+    }
+    if (backendError) setBackendError("");
   };
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.email) newErrors.email = "Email is required";
-    if (!formData.password) newErrors.password = "Password is required";
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Invalid email address";
+    }
+    
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -25,34 +47,18 @@ const LoginPage = ({ setIsAuthenticated }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setBackendError("");
+    
     if (!validateForm()) return;
 
+    setLoading(true);
     try {
-      const response = await fetch("http://localhost:8000/api/v1/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username_or_email: formData.email, password: formData.password }),
-        credentials: "include", // needed for cookie (refresh_token)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setBackendError(data.detail || "Login failed");
-        return;
-      }
-
-      // Save access token locally (or session)
-      const storage = formData.rememberMe ? localStorage : sessionStorage;
-      storage.setItem("trubitx_auth", "true");
-      storage.setItem("trubitx_access_token", data.access_token);
-      storage.setItem("trubitx_user", JSON.stringify({ email: formData.email }));
-
+      await authService.login(formData);
       setIsAuthenticated(true);
       navigate("/dashboard");
     } catch (err) {
-      console.error("Login error:", err);
-      setBackendError("Unable to login. Try again later.");
+      setBackendError(err.message || "Login failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,7 +75,11 @@ const LoginPage = ({ setIsAuthenticated }) => {
         </div>
 
         {/* Backend error */}
-        {backendError && <p className="text-red-500 text-sm text-center mb-2">{backendError}</p>}
+        {backendError && (
+          <div className="mx-8 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-sm text-center">{backendError}</p>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleLogin} className="px-8 space-y-5">
@@ -81,7 +91,10 @@ const LoginPage = ({ setIsAuthenticated }) => {
               placeholder="Email address"
               value={formData.email}
               onChange={handleChange}
-              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.email ? "border-red-500" : "border-gray-300"}`}
+              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.email ? "border-red-500" : "border-gray-300"
+              }`}
+              disabled={loading}
             />
             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
           </div>
@@ -94,12 +107,16 @@ const LoginPage = ({ setIsAuthenticated }) => {
               placeholder="Password"
               value={formData.password}
               onChange={handleChange}
-              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.password ? "border-red-500" : "border-gray-300"}`}
+              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                errors.password ? "border-red-500" : "border-gray-300"
+              }`}
+              disabled={loading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointe"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+              disabled={loading}
             >
               {showPassword ? "Hide" : "Show"}
             </button>
@@ -108,17 +125,33 @@ const LoginPage = ({ setIsAuthenticated }) => {
 
           {/* Remember Me & Forgot Password */}
           <div className="flex items-center justify-between">
-            <label className="flex items-center">
-              <input type="checkbox" name="rememberMe" checked={formData.rememberMe} onChange={handleChange} className="w-4 h-4 mr-2" />
+            <label className="flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                name="rememberMe" 
+                checked={formData.rememberMe} 
+                onChange={handleChange}
+                className="w-4 h-4 mr-2 cursor-pointer"
+                disabled={loading}
+              />
               Remember me
             </label>
-            <button type="button" onClick={handleForgotPassword} className="text-primary cursor-pointe text-sm">
+            <button 
+              type="button" 
+              onClick={handleForgotPassword} 
+              className="text-primary cursor-pointer text-sm hover:underline"
+              disabled={loading}
+            >
               Forgot password?
             </button>
           </div>
 
-          <button type="submit" className="w-full bg-primary text-white py-3 rounded-lg cursor-pointer transition font-medium">
-            Sign In
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-primary text-white py-3 rounded-lg cursor-pointer transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Signing In..." : "Sign In"}
           </button>
         </form>
 
@@ -126,7 +159,10 @@ const LoginPage = ({ setIsAuthenticated }) => {
         <div className="px-8 py-6 text-center border-t border-gray-100 mt-6">
           <span className="text-gray-500 text-sm">
             Don't have an account?{" "}
-            <button onClick={() => navigate("/register")} className="text-primary cursor-pointe font-medium">
+            <button 
+              onClick={() => navigate("/register")} 
+              className="text-primary cursor-pointer font-medium hover:underline"
+            >
               Create account
             </button>
           </span>
