@@ -10,7 +10,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
   const [showProfileDropup, setShowProfileDropup] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   const dropupRef = useRef(null);
   const profileButtonRef = useRef(null);
   const navigate = useNavigate();
@@ -101,7 +101,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
         if (!userData) {
           userData = await authService.fetchCurrentUser();
         }
-        
+
         setUser(userData || {
           name: 'Guest User',
           email: 'guest@example.com',
@@ -120,7 +120,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
 
   // Update active menu based on current route
   useEffect(() => {
-    const currentMenuItem = menuItems.find(item => 
+    const currentMenuItem = menuItems.find(item =>
       location.pathname.startsWith(item.path)
     );
     if (currentMenuItem) {
@@ -315,7 +315,7 @@ const Sidebar = ({ isSidebarOpen, toggleSidebar, activeMenu, setActiveMenu }) =>
               }`}
             title={isSidebarOpen ? getUserDisplayName() : ''}
           >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-semibold flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold flex-shrink-0">
               {getUserInitials()}
             </div>
             {!isSidebarOpen && (

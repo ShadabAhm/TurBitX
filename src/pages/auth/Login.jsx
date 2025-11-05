@@ -5,10 +5,10 @@ import logo from "../../assets/brand-logo2.png";
 
 const LoginPage = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ 
-    email: "", 
-    password: "", 
-    rememberMe: false 
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    rememberMe: false
   });
   const [errors, setErrors] = useState({});
   const [backendError, setBackendError] = useState("");
@@ -17,9 +17,9 @@ const LoginPage = ({ setIsAuthenticated }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData({ 
-      ...formData, 
-      [name]: type === "checkbox" ? checked : value 
+    setFormData({
+      ...formData,
+      [name]: type === "checkbox" ? checked : value
     });
     // Clear errors when user starts typing
     if (errors[name]) {
@@ -35,11 +35,11 @@ const LoginPage = ({ setIsAuthenticated }) => {
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Invalid email address";
     }
-    
+
     if (!formData.password) {
       newErrors.password = "Password is required";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -47,7 +47,7 @@ const LoginPage = ({ setIsAuthenticated }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setBackendError("");
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -91,9 +91,8 @@ const LoginPage = ({ setIsAuthenticated }) => {
               placeholder="Email address"
               value={formData.email}
               onChange={handleChange}
-              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.email ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.email ? "border-red-500" : "border-gray-300"
+                }`}
               disabled={loading}
             />
             {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
@@ -107,9 +106,8 @@ const LoginPage = ({ setIsAuthenticated }) => {
               placeholder="Password"
               value={formData.password}
               onChange={handleChange}
-              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                errors.password ? "border-red-500" : "border-gray-300"
-              }`}
+              className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${errors.password ? "border-red-500" : "border-gray-300"
+                }`}
               disabled={loading}
             />
             <button
@@ -126,19 +124,19 @@ const LoginPage = ({ setIsAuthenticated }) => {
           {/* Remember Me & Forgot Password */}
           <div className="flex items-center justify-between">
             <label className="flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                name="rememberMe" 
-                checked={formData.rememberMe} 
+              <input
+                type="checkbox"
+                name="rememberMe"
+                checked={formData.rememberMe}
                 onChange={handleChange}
                 className="w-4 h-4 mr-2 cursor-pointer"
                 disabled={loading}
               />
               Remember me
             </label>
-            <button 
-              type="button" 
-              onClick={handleForgotPassword} 
+            <button
+              type="button"
+              onClick={handleForgotPassword}
               className="text-primary cursor-pointer text-sm hover:underline"
               disabled={loading}
             >
@@ -146,8 +144,8 @@ const LoginPage = ({ setIsAuthenticated }) => {
             </button>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
             className="w-full bg-primary text-white py-3 rounded-lg cursor-pointer transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -159,8 +157,8 @@ const LoginPage = ({ setIsAuthenticated }) => {
         <div className="px-8 py-6 text-center border-t border-gray-100 mt-6">
           <span className="text-gray-500 text-sm">
             Don't have an account?{" "}
-            <button 
-              onClick={() => navigate("/register")} 
+            <button
+              onClick={() => navigate("/register")}
               className="text-primary cursor-pointer font-medium hover:underline"
             >
               Create account

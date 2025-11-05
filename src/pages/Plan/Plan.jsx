@@ -10,6 +10,10 @@ const Plans = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  const user = authService.getUser();
+  const activePlan = user?.plan?.toLowerCase() || null;
+
+
   useEffect(() => {
     const fetchPlans = async () => {
       try {
@@ -276,16 +280,25 @@ const Plans = () => {
                 </ul>
 
                 <button
-                  onClick={() => handlePlanSelect(plan)}
-                  className={`w-full py-3 px-6 rounded-lg font-medium transition-all ${plan.name.toLowerCase().includes('pro')
-                    ? 'bg-primary text-white shadow-lg'
-                    : plan.name.toLowerCase() === 'free'
-                      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
-                      : 'bg-white text-primary border-2 border-primary hover:bg-blue-50'
+                  onClick={() => {
+                    if (activePlan !== plan.name.toLowerCase()) handlePlanSelect(plan);
+                  }}
+                  disabled={activePlan === plan.name.toLowerCase()}
+                  className={`w-full py-3 px-6 rounded-lg font-medium transition-all
+    ${activePlan === plan.name.toLowerCase()
+                      ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                      : plan.name.toLowerCase().includes('pro')
+                        ? 'bg-primary text-white shadow-lg'
+                        : plan.name.toLowerCase() === 'free'
+                          ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                          : 'bg-white text-primary border-2 border-primary hover:bg-blue-50'
                     }`}
                 >
-                  {plan.button_text || `Get ${plan.name}`}
+                  {activePlan === plan.name.toLowerCase()
+                    ? 'Current Plan'
+                    : plan.button_text || `Get ${plan.name}`}
                 </button>
+
               </div>
             </div>
           ))}

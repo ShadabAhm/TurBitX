@@ -71,7 +71,6 @@ const Campaign = () => {
     const handleEditCampaign = (campaign) => {
         setSelectedCampaign(campaign);
         setOpenDropdown(null);
-        console.log('Edit campaign:', campaign);
     };
 
     const handleToggleRecurring = async (campaign) => {
@@ -151,7 +150,6 @@ const Campaign = () => {
     }
 
     const handleWizardFinish = (result) => {
-        console.log('Wizard finished with result:', result);
         fetchCampaigns();
     };
 

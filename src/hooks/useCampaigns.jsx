@@ -17,11 +17,9 @@ export const useCampaigns = () => {
     try {
       setLoading(true);
       setError(null);
-      console.log('Fetching campaigns...'); // Debug log
-      
+
       const response = await campaignService.getCampaigns(page);
-      console.log('Campaigns data:', response); // Debug log
-      
+
       // Handle different response formats
       if (response.data) {
         // If response has data property
@@ -67,7 +65,7 @@ export const useCampaigns = () => {
     }
   };
 
-   const toggleRecurring = async (campaignId, intervalHours = 24) => {
+  const toggleRecurring = async (campaignId, intervalHours = 24) => {
     try {
       await campaignService.toggleRecurring(campaignId, intervalHours);
       await fetchCampaigns(); // Refresh the list
@@ -102,7 +100,7 @@ export const useCampaigns = () => {
   // Fix double API call - use useEffect properly
   useEffect(() => {
     let isMounted = true;
-    
+
     const loadCampaigns = async () => {
       if (isMounted) {
         await fetchCampaigns(1);

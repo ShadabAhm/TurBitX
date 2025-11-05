@@ -16,7 +16,6 @@ const api = axios.create({
 // Add auth token to requests automatically
 api.interceptors.request.use((config) => {
   const token = authService.getToken();
-  console.log('Auth Token:', token); // Debug log
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   } else {
@@ -55,7 +54,6 @@ class CampaignService {
     try {
       // Try without query parameters first, as your backend might not support them
       const response = await api.get('/v1/campaigns');
-      console.log('Campaigns API Response:', response.data); // Debug log
       return response.data;
     } catch (error) {
       console.error('Get campaigns error:', error);
@@ -86,17 +84,17 @@ class CampaignService {
   }
 
   // Add this new method
-async toggleRecurring(campaignId, intervalHours = 24) {
-  try {
-    const response = await api.post(
-      `/v1/campaign/${campaignId}/toggle-recurring?interval_hours=${intervalHours}`
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Toggle recurring error:', error);
-    throw error;
+  async toggleRecurring(campaignId, intervalHours = 24) {
+    try {
+      const response = await api.post(
+        `/v1/campaign/${campaignId}/toggle-recurring?interval_hours=${intervalHours}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Toggle recurring error:', error);
+      throw error;
+    }
   }
-}
 
   // Cancel campaign
   async cancelCampaign(campaignId) {

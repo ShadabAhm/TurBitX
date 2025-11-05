@@ -117,7 +117,6 @@ const submitCampaign = async () => {
   try {
     setLoading(true);
     setError(null);
-    console.log('Starting campaign submission...');
 
     // Prepare data for API
     const apiData = {
@@ -128,23 +127,16 @@ const submitCampaign = async () => {
       duration_days: formData.duration_days,
     };
 
-    console.log('Sending API data:', apiData);
-
     let result;
     if (editCampaign) {
-      console.log('Editing campaign:', editCampaign.id);
       // Update logic here
     } else {
-      console.log('Creating new campaign');
       result = await campaignService.createCampaign(apiData);
-      console.log('API response:', result);
     }
 
     if (result) {
-      console.log('Campaign created successfully, moving to step 6');
       setStep(6); // Move to success stage
       if (onFinish) {
-        console.log('Calling onFinish callback');
         onFinish(result);
       }
     } else {

@@ -24,9 +24,6 @@ const Insights = ({ handleLogout }) => {
           campaignService.getCampaign(campaignId)
         ]);
 
-        console.log('Campaign results:', resultsData);
-        console.log('Campaign info:', infoData);
-
         setCampaignData(resultsData);
         setCampaignInfo(infoData);
         setError(null);
@@ -69,7 +66,6 @@ const Insights = ({ handleLogout }) => {
 
     if (error && error.includes('still processing') && campaignId) {
       retryInterval = setInterval(() => {
-        console.log('Retrying to fetch campaign data...');
         fetchCampaignData();
       }, 30000); // Retry every 30 seconds
     }

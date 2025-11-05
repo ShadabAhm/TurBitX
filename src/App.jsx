@@ -45,7 +45,7 @@ const App = () => {
       {/* Public routes */}
       <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
       <Route path="/register" element={<Register setIsAuthenticated={setIsAuthenticated} />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage setIsAuthenticated={setIsAuthenticated}/>} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage setIsAuthenticated={setIsAuthenticated} />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
 

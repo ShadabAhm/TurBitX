@@ -60,7 +60,7 @@ export default function ProfilePage() {
         {/* Header Card */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6">
           {/* Cover Image */}
-          <div className="h-48 bg-gradient-to-r from-[#8AC539] via-[#8AC539] to-[#FFBE0A] relative">
+          <div className="h-48 bg-primary relative">
             <div className="absolute inset-0 bg-black opacity-10"></div>
           </div>
 
@@ -80,7 +80,7 @@ export default function ProfilePage() {
               {!isEditing ? (
                 <button
                   onClick={handleEdit}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm cursor-pointer"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg transition-colors font-medium shadow-sm cursor-pointer"
                 >
                   <Edit2 className="w-4 h-4" />
                   Edit Profile
@@ -184,18 +184,17 @@ export default function ProfilePage() {
         </div>
 
         {/* Tabs Section (unchanged) */}
-       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="border-b border-gray-200">
             <div className="flex gap-1 px-6">
               {["profile", "security", "notifications"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-4 font-medium capitalize transition-colors relative cursor-pointer ${
-                    activeTab === tab
+                  className={`px-6 py-4 font-medium capitalize transition-colors relative cursor-pointer ${activeTab === tab
                       ? "text-blue-600"
                       : "text-gray-500 hover:text-gray-700"
-                  }`}
+                    }`}
                 >
                   {tab}
                   {activeTab === tab && (
@@ -224,7 +223,7 @@ export default function ProfilePage() {
                         Valid until: December 31, 2025
                       </p>
                     </div>
-                    <button className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium cursor-pointer">
+                    <button className="px-5 py-2.5 bg-primary text-white rounded-lg transition-colors font-medium cursor-pointer">
                       Upgrade Plan
                     </button>
                   </div>
